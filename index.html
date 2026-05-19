@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Kommunaler Förderassistent</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+      --green: #1a6b3c; --green-light: #e8f5ee; --green-mid: #2d8a55;
+      --red-light: #fee2e2; --red: #991b1b;
+      --gray-50: #f8f9fa; --gray-100: #f1f3f5; --gray-200: #e9ecef;
+      --gray-400: #868e96; --gray-600: #495057; --gray-800: #212529;
+      --border: #dee2e6; --radius: 8px; --radius-lg: 12px;
+    }
+    body { font-family: 'DM Sans', sans-serif; background: var(--gray-50); color: var(--gray-800); min-height: 100vh; }
+    .layout { display: flex; min-height: 100vh; }
+
+    /* Sidebar */
+    .sidebar {
+      width: 230px; flex-shrink: 0; background: #fff;
+      border-right: 1px solid var(--border);
+      display: flex; flex-direction: column;
+      position: sticky; top: 0; height: 100vh; overflow-y: auto;
+    }
+    .logo { display: flex; align-items: center; gap: 10px; padding: 1.5rem 1.25rem 1.25rem; border-bottom: 1px solid var(--border); }
+    .logo-icon { font-size: 1.4rem; background: var(--green-light); width: 38px; height: 38px; display: grid; place-items: center; border-radius: 10px; flex-shrink: 0; }
+    .logo-title { font-family: 'DM Serif Display', serif; font-size: 1rem; color: var(--green); line-height: 1.2; }
+    .logo-sub { font-size: 0.68rem; color: var(--gray-400); text-transform: uppercase; letter-spacing: 0.04em; margin-top: 2px; }
+    .history { flex: 1; padding: 1rem 0.75rem; }
+    .history-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--gray-400); font-weight: 600; padding: 0 0.5rem 0.6rem; }
+    .history-empty { font-size: 0.8rem; color: var(--gray-400); padding: 0.5rem; font-style: italic; }
+    .history-item { display: block; width: 100%; text-align: left; background: none; border: none; cursor: pointer; padding: 0.55rem 0.75rem; border-radius: var(--radius); margin-bottom: 2px; transition: background 0.15s; }
+    .history-item:hover { background: var(--green-light); }
+    .history-ort { font-size: 0.85rem; font-weight: 500; color: var(--gray-800); }
+    .history-meta { font-size: 0.72rem; color: var(--gray-400); margin-top: 1px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .history-time { font-size: 0.68rem; color: var(--gray-400); margin-top: 1px; }
+    .sidebar-footer { padding: 0.75rem 1.25rem; font-size: 0.68rem; color: var(--gray-400); border-top: 1px solid var(--border); text-align: center; }
+
+    /* Main */
+    .main { flex: 1; max-width: 860px; padding: 2rem 2.5rem; }
+    .page-header { margin-bottom: 1.75rem; }
+    .page-header h1 { font-family: 'DM Serif Display', serif; font-size: 1.875rem; color: var(--green); margin-bottom: 0.25rem; }
+    .page-header p { color: var(--gray-600); font-size: 0.9375rem; }
+
+    /* Form */
+    .form-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); display: flex; flex-direction: column; gap: 1.25rem; margin-bottom: 1.5rem; }
+    .form-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+    .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+    .field { display: flex; flex-direction: column; gap: 0.35rem; }
+    .field label { font-size: 0.8rem; font-weight: 500; color: var(--gray-600); }
+    .label-hint { font-weight: 400; color: var(--gray-400); font-size: 0.73rem; }
+    .field input, .field select { padding: 0.5625rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); background: #fff; color: var(--gray-800); font-size: 0.9375rem; font-family: 'DM Sans', sans-serif; transition: border-color 0.15s, box-shadow 0.15s; width: 100%; }
+    .field input:focus, .field select:focus { outline: none; border-color: var(--green-mid); box-shadow: 0 0 0 3px rgba(26,107,60,0.1); }
+
+    /* Chips */
+    .chips { display: flex; flex-wrap: wrap; gap: 0.5rem; }
+    .chip { padding: 0.35rem 0.875rem; border: 1px solid var(--border); border-radius: 20px; background: #fff; color: var(--gray-600); font-size: 0.8rem; cursor: pointer; transition: all 0.15s; font-family: 'DM Sans', sans-serif; }
+    .chip:hover { border-color: var(--green-mid); color: var(--green); background: var(--green-light); }
+    .chip.on { background: var(--green); border-color: var(--green); color: #fff; font-weight: 500; }
+    .chip.on:hover { background: var(--green-mid); }
+
+    /* Alerts */
+    .alert { padding: 0.75rem 1rem; border-radius: var(--radius); font-size: 0.875rem; margin-top: 0.25rem; }
+    .alert-error { background: var(--red-light); color: var(--red); border: 1px solid #fca5a5; }
+
+    /* Button */
+    .btn-primary { width: 100%; padding: 0.75rem 1.5rem; background: var(--green); color: #fff; border: none; border-radius: var(--radius); font-size: 1rem; font-weight: 500; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 0.5rem; transition: background 0.15s; font-family: 'DM Sans', sans-serif; }
+    .btn-primary:hover:not(:disabled) { background: var(--green-mid); }
+    .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+    .spinner { width: 16px; height: 16px; border: 2px solid rgba(255,255,255,0.4); border-top-color: #fff; border-radius: 50%; animation: spin 0.7s linear infinite; display: inline-block; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Loading */
+    .loading-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 2rem; display: flex; align-items: center; gap: 1.25rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 1.5rem; }
+    .dots { display: flex; gap: 5px; flex-shrink: 0; }
+    .dots span { width: 8px; height: 8px; border-radius: 50%; background: var(--green); animation: bounce 1.2s infinite ease-in-out; }
+    .dots span:nth-child(2) { animation-delay: 0.2s; }
+    .dots span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce { 0%,60%,100% { transform: translateY(0); opacity: 0.6; } 30% { transform: translateY(-6px); opacity: 1; } }
+    .loading-text { font-size: 0.9375rem; color: var(--gray-600); line-height: 1.5; }
+    .loading-text small { color: var(--gray-400); }
+
+    /* Result */
+    .result-card { background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 1.75rem; box-shadow: 0 1px 3px rgba(0,0,0,0.08); margin-bottom: 2rem; }
+    .result-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.25rem; padding-bottom: 0.75rem; border-bottom: 1px solid var(--border); }
+    .result-badge { font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; color: var(--green); background: var(--green-light); padding: 0.25rem 0.75rem; border-radius: 20px; }
+    .btn-copy { font-size: 0.8rem; padding: 0.35rem 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); background: #fff; cursor: pointer; color: var(--gray-600); transition: background 0.15s; font-family: 'DM Sans', sans-serif; }
+    .btn-copy:hover { background: var(--gray-50); }
+
+    /* Prose */
+    .prose h2 { font-family: 'DM Serif Display', serif; font-size: 1.15rem; margin: 1.5rem 0 0.5rem; color: var(--green); }
+    .prose h3 { font-size: 1rem; font-weight: 600; margin: 1.2rem 0 0.4rem; padding-bottom: 0.3rem; border-bottom: 1px solid var(--border); }
+    .prose p { margin: 0.5rem 0; font-size: 0.9375rem; }
+    .prose ul { padding-left: 1.2rem; margin: 0.5rem 0; }
+    .prose li { margin: 0.25rem 0; font-size: 0.9375rem; }
+    .prose table { width: 100%; border-collapse: collapse; font-size: 0.875rem; margin: 0.75rem 0; }
+    .prose th { text-align: left; padding: 0.5rem 0.75rem; background: var(--gray-100); font-weight: 500; border-bottom: 1px solid var(--border); }
+    .prose td { padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--gray-100); vertical-align: top; }
+    .prose tr:last-child td { border-bottom: none; }
+    .prose hr { border: none; border-top: 1px solid var(--border); margin: 1rem 0; }
+    .prose strong { font-weight: 600; }
+    .prose a { color: var(--green); text-decoration: underline; text-underline-offset: 2px; }
+    .prose em { font-style: italic; }
+    .prose code { background: var(--gray-100); padding: 0.1em 0.4em; border-radius: 4px; font-size: 0.875em; }
+
+    @media (max-width: 768px) {
+      .sidebar { display: none; }
+      .main { padding: 1.25rem; }
+      .form-grid-2, .form-grid-3 { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+<div class="layout">
+  <aside class="sidebar">
+    <div class="logo">
+      <div class="logo-icon">⚡</div>
+      <div>
+        <div class="logo-title">Förder&shy;assistent</div>
+        <div class="logo-sub">kommunal & regional</div>
+      </div>
+    </div>
+    <nav class="history">
+      <div class="history-label">Letzte Anfragen</div>
+      <div id="hist"><div class="history-empty">Noch keine Anfragen</div></div>
+    </nav>
+    <div class="sidebar-footer">Nur für interne Nutzung</div>
+  </aside>
+
+  <main class="main">
+    <div class="page-header">
+      <h1>Kommunale Förderungen finden</h1>
+      <p>Recherche von städtischen, regionalen und Landesförderungen — ohne Bundesebene (KfW / BAFA)</p>
+    </div>
+
+    <div class="form-card">
+      <div class="form-grid-2">
+        <div class="field">
+          <label>Ort oder Postleitzahl *</label>
+          <input type="text" id="ort" placeholder="z.B. Waiblingen oder 71332">
+        </div>
+        <div class="field">
+          <label>Gebäudetyp *</label>
+          <select id="geb">
+            <option value="">Bitte wählen …</option>
+            <option>Einfamilienhaus</option>
+            <option>Mehrfamilienhaus</option>
+            <option>Gewerbeimmobilie</option>
+            <option>Neubau</option>
+            <option>Bestand</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label>Eigentümerart *</label>
+        <select id="eig">
+          <option value="">Bitte wählen …</option>
+          <option>Privatperson</option>
+          <option>Vermieter</option>
+          <option>Unternehmen</option>
+          <option>Kommune</option>
+        </select>
+      </div>
+
+      <div class="field">
+        <label>Geplante Maßnahmen * <span class="label-hint">Mehrfachauswahl möglich</span></label>
+        <div class="chips" id="chips">
+          <button class="chip" onclick="tog(this)" data-v="Wärmepumpe">Wärmepumpe</button>
+          <button class="chip" onclick="tog(this)" data-v="Photovoltaik">Photovoltaik</button>
+          <button class="chip" onclick="tog(this)" data-v="Batteriespeicher">Batteriespeicher</button>
+          <button class="chip" onclick="tog(this)" data-v="Wallbox">Wallbox</button>
+          <button class="chip" onclick="tog(this)" data-v="Dämmung">Dämmung</button>
+          <button class="chip" onclick="tog(this)" data-v="Fenster/Türen">Fenster/Türen</button>
+          <button class="chip" onclick="tog(this)" data-v="Dachsanierung">Dachsanierung</button>
+          <button class="chip" onclick="tog(this)" data-v="Heizungstausch">Heizungstausch</button>
+          <button class="chip" onclick="tog(this)" data-v="Smart Home">Smart Home</button>
+          <button class="chip" onclick="tog(this)" data-v="Energieberatung">Energieberatung</button>
+          <button class="chip" onclick="tog(this)" data-v="Komplettsanierung">Komplettsanierung</button>
+        </div>
+      </div>
+
+      <div class="form-grid-3">
+        <div class="field">
+          <label>Investitionssumme (€)</label>
+          <input type="text" id="inv" placeholder="z.B. 25000">
+        </div>
+        <div class="field">
+          <label>Baujahr</label>
+          <input type="number" id="bj" placeholder="z.B. 1985" min="1900" max="2025">
+        </div>
+        <div class="field">
+          <label>Energieeffizienzklasse</label>
+          <select id="ek">
+            <option value="">Keine Angabe</option>
+            <option>A+</option><option>A</option><option>B</option><option>C</option>
+            <option>D</option><option>E</option><option>F</option><option>G</option><option>H</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="err"></div>
+
+      <button class="btn-primary" id="btn" onclick="suchen()">
+        Förderungen suchen
+      </button>
+    </div>
+
+    <div id="loading" style="display:none" class="loading-card">
+      <div class="dots"><span></span><span></span><span></span></div>
+      <div class="loading-text">
+        KI recherchiert kommunale Programme für <strong id="load-ort"></strong> …<br>
+        <small>Das kann 15–30 Sekunden dauern</small>
+      </div>
+    </div>
+
+    <div id="result" style="display:none" class="result-card">
+      <div class="result-header">
+        <div class="result-badge">Ergebnis</div>
+        <button class="btn-copy" id="copy-btn" onclick="copyResult()">📋 Kopieren</button>
+      </div>
+      <div class="prose" id="result-body"></div>
+    </div>
+  </main>
+</div>
+
+<script>
+  let history = []
+  let lastText = ''
+
+  function tog(el) { el.classList.toggle('on') }
+
+  function getMass() {
+    return [...document.querySelectorAll('#chips .chip.on')].map(e => e.dataset.v)
+  }
+
+  function showErr(msg) {
+    document.getElementById('err').innerHTML = `<div class="alert alert-error">${msg}</div>`
+  }
+
+  async function suchen() {
+    document.getElementById('err').innerHTML = ''
+
+    const ort  = document.getElementById('ort').value.trim()
+    const geb  = document.getElementById('geb').value
+    const eig  = document.getElementById('eig').value
+    const mass = getMass()
+    const inv  = document.getElementById('inv').value.trim()
+    const bj   = document.getElementById('bj').value.trim()
+    const ek   = document.getElementById('ek').value
+
+    if (!ort)         return showErr('Bitte Ort oder Postleitzahl eingeben.')
+    if (!geb)         return showErr('Bitte Gebäudetyp wählen.')
+    if (!eig)         return showErr('Bitte Eigentümerart wählen.')
+    if (!mass.length) return showErr('Bitte mindestens eine Maßnahme auswählen.')
+
+    const extras = []
+    if (inv) extras.push(`Investitionssumme: ${inv} €`)
+    if (bj)  extras.push(`Baujahr: ${bj}`)
+    if (ek)  extras.push(`Energieeffizienzklasse: ${ek}`)
+
+    const prompt = `KOMMUNALE FÖRDERANFRAGE:
+Ort: ${ort}
+Gebäudetyp: ${geb}
+Eigentümerart: ${eig}
+Maßnahmen: ${mass.join(', ')}${extras.length ? '\n' + extras.join('\n') : ''}
+
+Recherchiere AUSSCHLIESSLICH kommunale und regionale Förderprogramme.
+KEINE Bundesförderungen (kein KfW, kein BAFA, kein BEG).
+
+Zeige NUR:
+- Städtische Förderprogramme der Gemeinde
+- Stadtwerke-Förderungen
+- Kommunale Zuschüsse des Landkreises
+- Landesförderungen (L-Bank, Landesenergieagentur, Klimaschutz-Programme)
+- Regionale Energieversorger-Programme
+- Kostenlose kommunale Beratungsangebote
+
+Für jede Förderung:
+### [Name]
+| | |
+|---|---|
+| Fördergeber | ... |
+| Förderart | Zuschuss / Kredit / Tarif / kostenlose Leistung |
+| Förderhöhe | ... |
+| Förderquote | ...% |
+| Status | 🟢 aktiv / 🟡 in Überarbeitung / 🔴 ausgelaufen |
+| Antragsfrist | ... |
+| Kombinierbar mit Bundesförderung? | Ja / Nein / Einschränkungen |
+
+Voraussetzungen: ...
+Webseite: [Name](URL)
+
+---
+
+Falls keine kommunalen Programme existieren: klar benennen und regionale Beratungsstellen nennen.
+Am Ende: Ein Satz, dass KfW/BAFA zusätzlich nutzbar sind, aber hier nicht aufgeführt werden.`
+
+    const btn = document.getElementById('btn')
+    btn.disabled = true
+    btn.innerHTML = '<span class="spinner"></span> Recherchiere …'
+    document.getElementById('load-ort').textContent = ort
+    document.getElementById('loading').style.display = 'flex'
+    document.getElementById('result').style.display = 'none'
+
+    try {
+      const res = await fetch('/api/anthropic', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          model: 'claude-sonnet-4-20250514',
+          max_tokens: 4000,
+          tools: [{ type: 'web_search_20250305', name: 'web_search' }],
+          messages: [{ role: 'user', content: prompt }]
+        })
+      })
+
+      const data = await res.json()
+      if (data.error) throw new Error(data.error.message)
+
+      const text = (data.content || []).filter(b => b.type === 'text').map(b => b.text).join('\n')
+      if (!text) throw new Error('Keine Antwort erhalten.')
+
+      lastText = text
+      document.getElementById('result-body').innerHTML = md2html(text)
+      document.getElementById('result').style.display = 'block'
+      document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'start' })
+
+      const ts = new Date().toLocaleString('de-DE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })
+      history.unshift({ ort, mass: [...mass], text, ts })
+      if (history.length > 10) history.pop()
+      renderHistory()
+
+    } catch (e) {
+      showErr('Fehler: ' + e.message)
+    } finally {
+      btn.disabled = false
+      btn.innerHTML = 'Förderungen suchen'
+      document.getElementById('loading').style.display = 'none'
+    }
+  }
+
+  function renderHistory() {
+    const el = document.getElementById('hist')
+    if (!history.length) { el.innerHTML = '<div class="history-empty">Noch keine Anfragen</div>'; return }
+    el.innerHTML = history.map((h, i) => `
+      <button class="history-item" onclick="loadHist(${i})">
+        <div class="history-ort">${h.ort}</div>
+        <div class="history-meta">${h.mass.slice(0,2).join(', ')}${h.mass.length > 2 ? ` +${h.mass.length-2}` : ''}</div>
+        <div class="history-time">${h.ts}</div>
+      </button>`).join('')
+  }
+
+  function loadHist(i) {
+    lastText = history[i].text
+    document.getElementById('result-body').innerHTML = md2html(history[i].text)
+    document.getElementById('result').style.display = 'block'
+    document.getElementById('result').scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
+  function copyResult() {
+    navigator.clipboard.writeText(lastText).then(() => {
+      document.getElementById('copy-btn').textContent = '✅ Kopiert!'
+      setTimeout(() => { document.getElementById('copy-btn').textContent = '📋 Kopieren' }, 2000)
+    })
+  }
+
+  function md2html(t) {
+    const lines = t.split('\n')
+    let html = '', inT = false, inUL = false
+    const fmt = s => s
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>')
+      .replace(/`(.+?)`/g, '<code>$1</code>')
+      .replace(/\[([^\]]+)\]\((https?[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+    const close = () => {
+      if (inT)  { html += '</tbody></table>'; inT  = false }
+      if (inUL) { html += '</ul>';             inUL = false }
+    }
+    for (const line of lines) {
+      if      (line.startsWith('### ')) { close(); html += `<h3>${fmt(line.slice(4))}</h3>` }
+      else if (line.startsWith('## '))  { close(); html += `<h2>${fmt(line.slice(3))}</h2>` }
+      else if (line.startsWith('# '))   { close(); html += `<h2 style="font-size:1.4rem">${fmt(line.slice(2))}</h2>` }
+      else if (line.startsWith('|')) {
+        if (inUL) { html += '</ul>'; inUL = false }
+        const cells = line.split('|').slice(1,-1).map(c => c.trim())
+        if (cells.every(c => /^[-: ]+$/.test(c))) continue
+        if (!inT) { html += '<table><tbody>'; inT = true }
+        html += `<tr>${cells.map((c,i) => i===0 ? `<th>${fmt(c)}</th>` : `<td>${fmt(c)}</td>`).join('')}</tr>`
+      }
+      else if (line.startsWith('- ') || line.startsWith('* ')) {
+        if (inT) { html += '</tbody></table>'; inT = false }
+        if (!inUL) { html += '<ul>'; inUL = true }
+        html += `<li>${fmt(line.slice(2))}</li>`
+      }
+      else if (line.trim() === '---') { close(); html += '<hr>' }
+      else if (line.trim() === '')    { close() }
+      else { close(); html += `<p>${fmt(line)}</p>` }
+    }
+    close()
+    return html
+  }
+</script>
+</body>
+</html>
